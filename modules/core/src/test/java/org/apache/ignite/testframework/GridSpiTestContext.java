@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
+import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.events.DiscoveryEvent;
@@ -333,7 +334,13 @@ public class GridSpiTestContext implements IgniteSpiContext {
 
     /** {@inheritDoc} */
     @Override public void addLocalMessageListener(Object topic, IgniteBiPredicate<UUID, ?> p) {
-        addMessageListener(TOPIC_COMM_USER, new GridLocalMessageListener(topic, (IgniteBiPredicate<UUID, Object>)p));
+        try {
+            addMessageListener(TOPIC_COMM_USER,
+                new GridLocalMessageListener(topic, (IgniteBiPredicate<UUID, Object>)p));
+        }
+        catch (IgniteCheckedException e) {
+            throw new IgniteException(e);
+        }
     }
 
     /**
@@ -356,7 +363,13 @@ public class GridSpiTestContext implements IgniteSpiContext {
 
     /** {@inheritDoc} */
     @Override public void removeLocalMessageListener(Object topic, IgniteBiPredicate<UUID, ?> p) {
-        removeMessageListener(TOPIC_COMM_USER, new GridLocalMessageListener(topic, (IgniteBiPredicate<UUID, Object>)p));
+        try {
+            removeMessageListener(TOPIC_COMM_USER,
+                new GridLocalMessageListener(topic, (IgniteBiPredicate<UUID, Object>)p));
+        }
+        catch (IgniteCheckedException e) {
+            throw new IgniteException(e);
+        }
     }
 
     /**
@@ -389,7 +402,7 @@ public class GridSpiTestContext implements IgniteSpiContext {
 
     /** {@inheritDoc} */
     @Override public void addLocalEventListener(GridLocalEventListener lsnr, int... types) {
-        Set<Integer> typeSet = F.addIfAbsent(evtLsnrs, lsnr, F.newSet());
+        Set<Integer> typeSet = F.addIfAbsent(evtLsnrs, lsnr, F.<Integer>newSet());
 
         assert typeSet != null;
 
@@ -560,15 +573,6 @@ public class GridSpiTestContext implements IgniteSpiContext {
         return factory;
     }
 
-    /**
-     * Sets custom test message factory.
-     *
-     * @param factory Message factory.
-     */
-    public void messageFactory(MessageFactory factory) {
-        this.factory = factory;
-    }
-
     /** {@inheritDoc} */
     @Override public boolean isStopping() {
         return false;
@@ -650,7 +654,7 @@ public class GridSpiTestContext implements IgniteSpiContext {
     /**
      * This class represents a message listener wrapper that knows about peer deployment.
      */
-    private static class GridLocalMessageListener implements GridMessageListener {
+    private class GridLocalMessageListener implements GridMessageListener {
         /** Predicate listeners. */
         private final IgniteBiPredicate<UUID, Object> predLsnr;
 
@@ -660,8 +664,10 @@ public class GridSpiTestContext implements IgniteSpiContext {
         /**
          * @param topic User topic.
          * @param predLsnr Predicate listener.
+         * @throws IgniteCheckedException If failed to inject resources to predicates.
          */
-        GridLocalMessageListener(@Nullable Object topic, @Nullable IgniteBiPredicate<UUID, Object> predLsnr) {
+        GridLocalMessageListener(@Nullable Object topic, @Nullable IgniteBiPredicate<UUID, Object> predLsnr)
+            throws IgniteCheckedException {
             this.topic = topic;
             this.predLsnr = predLsnr;
         }
