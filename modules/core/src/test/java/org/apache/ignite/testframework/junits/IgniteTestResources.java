@@ -32,6 +32,7 @@ import org.apache.ignite.internal.binary.BinaryCachingMetadataHandler;
 import org.apache.ignite.internal.binary.BinaryContext;
 import org.apache.ignite.internal.binary.BinaryMarshaller;
 import org.apache.ignite.internal.processors.resource.GridResourceProcessor;
+import org.apache.ignite.internal.resources.MetricManagerResource;
 import org.apache.ignite.internal.util.IgniteUtils;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.logger.NullLogger;
@@ -87,8 +88,10 @@ public class IgniteTestResources {
         return U.IGNITE_MBEANS_DISABLED ? null : ManagementFactory.getPlatformMBeanServer();
     }
 
-    /** */
-    public IgniteTestResources() {
+    /**
+     * @throws IgniteCheckedException If failed.
+     */
+    public IgniteTestResources() throws IgniteCheckedException {
         if (SensitiveInfoTestLoggerProxy.TEST_SENSITIVE)
             log = new SensitiveInfoTestLoggerProxy(rootLog.getLogger(getClass()), null, null, null);
         else
@@ -104,7 +107,7 @@ public class IgniteTestResources {
     /**
      * @param cfg Ignite configuration
      */
-    public IgniteTestResources(IgniteConfiguration cfg) {
+    public IgniteTestResources(IgniteConfiguration cfg) throws IgniteCheckedException {
         this.cfg = cfg;
         this.log = rootLog.getLogger(getClass());
         this.jmx = prepareMBeanServer();
@@ -115,7 +118,7 @@ public class IgniteTestResources {
     /**
      * @param jmx JMX server.
      */
-    public IgniteTestResources(MBeanServer jmx) {
+    public IgniteTestResources(MBeanServer jmx) throws IgniteCheckedException {
         assert jmx != null;
 
         this.jmx = jmx;
@@ -127,7 +130,7 @@ public class IgniteTestResources {
     /**
      * @param log Logger.
      */
-    public IgniteTestResources(IgniteLogger log) {
+    public IgniteTestResources(IgniteLogger log) throws IgniteCheckedException {
         assert log != null;
 
         this.log = log.getLogger(getClass());
@@ -164,7 +167,7 @@ public class IgniteTestResources {
      */
     public void startThreads(boolean prestart) {
         execSvc = new IgniteThreadPoolExecutor(nodeId.toString(), null, 40, 40, Long.MAX_VALUE,
-                new LinkedBlockingQueue<>());
+            new LinkedBlockingQueue<Runnable>());
 
         // Improve concurrency for testing.
         if (prestart)
@@ -191,6 +194,7 @@ public class IgniteTestResources {
         rsrcProc.injectBasicResource(target, LoggerResource.class, getLogger().getLogger(target.getClass()));
         rsrcProc.injectBasicResource(target, IgniteInstanceResource.class,
             new IgniteMock(null, locHost, nodeId, getMarshaller(), jmx, home, cfg));
+        rsrcProc.injectBasicResource(target, MetricManagerResource.class, ctx.metric());
     }
 
     /**
