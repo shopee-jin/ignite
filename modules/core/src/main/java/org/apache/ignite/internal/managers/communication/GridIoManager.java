@@ -517,8 +517,6 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
 
         List<MessageFactory> compMsgs = new ArrayList<>();
 
-        compMsgs.add(new GridIoMessageFactory());
-
         for (IgniteComponentType compType : IgniteComponentType.values()) {
             MessageFactory f = compType.messageFactory();
 
@@ -529,7 +527,7 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
         if (!compMsgs.isEmpty())
             msgs = F.concat(msgs, compMsgs.toArray(new MessageFactory[compMsgs.size()]));
 
-        msgFactory = new IgniteMessageFactoryImpl(msgs);
+        msgFactory = new GridIoMessageFactory(msgs);
 
         if (log.isDebugEnabled())
             log.debug(startInfo());
